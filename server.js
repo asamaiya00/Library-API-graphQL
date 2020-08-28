@@ -1,12 +1,12 @@
 const express = require('express');
 const { graphqlHTTP } = require('express-graphql');
 const {
-  GraphQLSchema,
-  GraphQLObjectType,
+  GraphQLInt,
   GraphQLString,
   GraphQLList,
-  GraphQLInt,
+  GraphQLSchema,
   GraphQLNonNull,
+  GraphQLObjectType,
 } = require('graphql');
 const app = express();
 
@@ -82,6 +82,18 @@ const RootQueryType = new GraphQLObjectType({
       },
       resolve: (parent, args) => books.find((book) => book.id === args.id),
     },
+    author: {
+      type: AuthorType,
+      description: 'A single Author',
+      args: {
+        id: {
+          type: GraphQLInt,
+        },
+      },
+      resolve: (parent, args) =>
+        authors.find((author) => author.id === args.id),
+    },
+
     books: {
       type: new GraphQLList(BookType),
       description: 'List of all books',
@@ -96,8 +108,48 @@ const RootQueryType = new GraphQLObjectType({
   }),
 });
 
+const RootMutationType = new GraphQLObjectType({
+  name: 'Mutation',
+  description: 'Root Mutation',
+  fields: () => ({
+    addBook: {
+      type: BookType,
+      description: 'Add a book',
+      args: {
+        name: { type: new GraphQLNonNull(GraphQLString) },
+        authorId: { type: new GraphQLNonNull(GraphQLInt) },
+      },
+      resolve: (parent, args) => {
+        const book = {
+          id: books.length + 1,
+          name: args.name,
+          authorId: args.authorId,
+        };
+        books.push(book);
+        return book;
+      },
+    },
+    addAuthor: {
+      type: AuthorType,
+      description: 'Add an Author',
+      args: {
+        name: { type: new GraphQLNonNull(GraphQLString) },
+      },
+      resolve: (parent, args) => {
+        const author = {
+          id: authors.length + 1,
+          name: args.name,
+        };
+        authors.push(author);
+        return author;
+      },
+    },
+  }),
+});
+
 const schema = new GraphQLSchema({
   query: RootQueryType,
+  mutation: RootMutationType,
 });
 
 app.use(
